@@ -1,0 +1,1734 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>MarketPulse — Daily Trader Dashboard</title>
+<style>
+  :root {
+    box-sizing: border-box;
+    padding-top: env(safe-area-inset-top, 0px);
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+    --bg: #0f172a; --card: #1e293b; --card2: #0b1222; --border: #334155;
+    --text: #e2e8f0; --dim: #94a3b8; --accent: #6366f1;
+    --bear: #ef4444; --bull: #22c55e; --warn: #f59e0b; --gold: #eab308; --div: #34d399;
+    --mono: "SF Mono", "Fira Code", ui-monospace, Menlo, Consolas, monospace;
+    --sans: -apple-system, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) { --bg:#f5f2ea; --card:#ffffff; --card2:#efeadf; --border:#d9d2c3; --text:#1b2233; --dim:#5b6475; }
+  }
+  :root[data-theme="light"] { --bg:#f5f2ea; --card:#ffffff; --card2:#efeadf; --border:#d9d2c3; --text:#1b2233; --dim:#5b6475; }
+  :root[data-theme="dark"]  { --bg:#0f172a; --card:#1e293b; --card2:#0b1222; --border:#334155; --text:#e2e8f0; --dim:#94a3b8; }
+  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
+  * { box-sizing: border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font-family:var(--mono); font-size:13px; line-height:1.55; }
+  img, svg { max-width:100%; }
+  a { color:var(--accent); }
+
+  .wrap { max-width:1280px; margin:0 auto; padding:14px 16px 40px; }
+  header.top { display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; margin-bottom:10px; }
+  .brand { font-size:18px; font-weight:800; letter-spacing:1px; }
+  .sub { color:var(--dim); font-size:11px; margin-top:2px; }
+  .controls { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  select, button.btn { background:var(--card); color:var(--text); border:1px solid var(--border); border-radius:6px; padding:6px 10px; font:inherit; font-size:12px; cursor:pointer; }
+  button.btn[aria-pressed="true"] { background:var(--accent); border-color:var(--accent); color:#fff; }
+  button.btn.div[aria-pressed="true"] { background:var(--div); border-color:var(--div); color:#022c22; }
+  .badges { display:flex; gap:6px; flex-wrap:wrap; }
+  .badge { display:inline-block; border-radius:4px; padding:2px 8px; font-size:11px; font-weight:700; text-transform:uppercase; letter-spacing:.5px; border:1px solid; }
+
+  .alert { border-radius:10px; padding:12px 16px; margin-bottom:8px; font-size:13px; line-height:1.9; border:2px solid; }
+  .alert strong { font-size:14px; display:block; margin-bottom:2px; }
+  .alert.bear { background:linear-gradient(135deg,#3f0a0a,#1a0303); color:#fecaca; border-color:rgba(239,68,68,.55); } .alert.bear strong{color:#f87171}
+  .alert.bull { background:linear-gradient(135deg,#052e16,#0a1f14); color:#86efac; border-color:rgba(34,197,94,.55); } .alert.bull strong{color:#4ade80}
+  .alert.gold { background:linear-gradient(135deg,#422006,#1a1405); color:#fde68a; border-color:rgba(234,179,8,.55); } .alert.gold strong{color:#eab308}
+  .alert.info { background:rgba(30,27,75,.4); color:#c7d2fe; border-color:rgba(99,102,241,.4); border-width:1px; font-size:12px; }
+  @media (prefers-color-scheme: light) {
+    :root:not([data-theme="dark"]) .alert.bear{color:#7f1d1d;background:#fde8e8} :root:not([data-theme="dark"]) .alert.bear strong{color:#b91c1c}
+    :root:not([data-theme="dark"]) .alert.bull{color:#14532d;background:#e6f6ec} :root:not([data-theme="dark"]) .alert.bull strong{color:#15803d}
+    :root:not([data-theme="dark"]) .alert.gold{color:#713f12;background:#fdf3d7} :root:not([data-theme="dark"]) .alert.gold strong{color:#a16207}
+    :root:not([data-theme="dark"]) .alert.info{color:#312e81;background:#ecebfb}
+  }
+
+  nav.tabs { display:flex; gap:6px; flex-wrap:wrap; margin:12px 0 14px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(280px,1fr)); gap:14px; }
+  .grid.wide { grid-template-columns:repeat(auto-fit,minmax(320px,1fr)); }
+  .card { background:var(--card); border:1px solid var(--border); border-radius:10px; padding:16px 18px; display:flex; flex-direction:column; gap:10px; }
+  .card h3 { margin:0; font-size:12px; text-transform:uppercase; letter-spacing:.6px; display:flex; gap:8px; align-items:center; }
+  .callout { border-radius:8px; padding:11px 13px; border:1px solid; }
+  .callout b { display:block; font-size:13px; }
+  .callout span { color:var(--dim); font-size:11px; }
+  .row { display:flex; justify-content:space-between; gap:8px; border-bottom:1px solid var(--border); padding-bottom:5px; }
+  .row .l { color:var(--dim); font-size:11px; min-width:150px; flex-shrink:0; }
+  .row .v { text-align:right; font-size:12px; font-weight:600; }
+  .row .s { color:var(--dim); font-size:10px; text-align:right; }
+  .divider { border-top:1px solid var(--border); margin:4px 0; }
+  .note { font-size:11px; color:var(--dim); line-height:1.8; white-space:pre-wrap; }
+  .note.text { color:var(--text); }
+
+  .news { background:var(--card2); border:1px solid var(--border); border-radius:8px; padding:12px 14px; display:flex; flex-direction:column; gap:6px; margin-bottom:12px; }
+  .news .meta { display:flex; gap:8px; align-items:center; flex-wrap:wrap; }
+  .news .tick { font-size:11px; font-weight:700; margin-left:auto; }
+  .news h4 { margin:0; font-size:12px; line-height:1.5; }
+  .news p { margin:0; color:var(--dim); font-size:11px; line-height:1.7; }
+  .impact { border-radius:6px; padding:7px 11px; border:1px solid; font-size:11px; }
+  .impact em { font-style:normal; color:var(--dim); font-size:10px; font-weight:700; text-transform:uppercase; }
+
+  .tablewrap { overflow-x:auto; }
+  table { width:100%; border-collapse:collapse; font-size:11px; }
+  th { color:var(--dim); text-align:left; padding:8px 10px; font-weight:700; text-transform:uppercase; font-size:10px; border-bottom:2px solid var(--border); }
+  td { padding:8px 10px; border-bottom:1px solid var(--border); vertical-align:top; }
+  tr.hl td { background:rgba(234,179,8,.08); }
+
+  .scen { border-radius:8px; padding:12px 14px; margin-bottom:8px; border:1px solid; }
+  .scen .p { font-size:11px; color:var(--dim); margin-top:8px; line-height:1.7; }
+  .scen .p b { color:var(--text); }
+  .bar { height:8px; background:var(--border); border-radius:2px; overflow:hidden; margin-top:6px; }
+  .bar i { display:block; height:100%; }
+
+  footer { margin-top:18px; border-top:1px solid var(--border); padding-top:10px; color:var(--dim); font-size:10px; line-height:1.7; }
+  .hidden { display:none; }
+  .c-bear{color:var(--bear)} .c-bull{color:var(--bull)} .c-warn{color:var(--warn)} .c-gold{color:var(--gold)} .c-div{color:var(--div)} .c-dim{color:var(--dim)} .c-text{color:var(--text)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <div class="brand">⚡ MARKETPULSE — TRADER DASHBOARD</div>
+      <div class="sub" id="sub"></div>
+    </div>
+    <div class="controls">
+      <label for="edition" class="sub">Edition</label>
+      <select id="edition" aria-label="Choose edition"></select>
+      <button class="btn" id="themeBtn" type="button" aria-label="Toggle theme">◐</button>
+    </div>
+  </header>
+
+  <div class="badges" id="badges"></div>
+  <div id="alerts" style="margin-top:10px"></div>
+  <nav class="tabs" id="tabs" aria-label="Sections"></nav>
+  <main id="main"></main>
+  <footer id="foot"></footer>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────
+// EDITIONS: newest first. To publish a new day, prepend an object here
+// (or replace this array from the daily pipeline's data.json) and republish.
+// ─────────────────────────────────────────────────────────────
+const EDITIONS = [
+ {
+  "date": "2026-09-21",
+  "label": "Mon Sep 21, 2026",
+  "sub": "THE FED HIKED · BE JOINS S&P 500 · TRUMP-XI SUMMIT · MU THIS WEEK",
+  "badges": [
+   [
+    "FED HIKED TO 3.75-4.00% 🏛️",
+    "bear"
+   ],
+   [
+    "BE → S&P 500 TODAY ⭐",
+    "bull"
+   ],
+   [
+    "TRUMP-XI SUMMIT 🤝",
+    "gold"
+   ],
+   [
+    "MU EARNINGS THIS WEEK",
+    "warn"
+   ]
+  ],
+  "alerts": [
+   [
+    "bear",
+    "🏛️ THE FED HIKED 25BP TO 3.75-4.00% — FIRST INCREASE SINCE 2023 · UNANIMOUS · DOT PLOT PENCILS IN AT LEAST ONE MORE",
+    "Warsh: \"Our predominant focus is on the price stability side of our mandate\" · \"inflation remains elevated\" · futures price ~42% odds of TWO more by year-end · stocks sold the presser (Dow -631, GS led; SPX -0.45% to 7,551.81) · Trump: rates \"should be 1% or less\" but spared Warsh · forced by HOT Aug CPI (+0.4% MoM, core +0.3%) + WTI $102.48 (+78.5% YTD) + 10Y 4.95% (highest since Oct 2023)"
+   ],
+   [
+    "bull",
+    "⭐ BLOOM ENERGY JOINS THE S&P 500 TODAY — UP ~190% YTD AS THE AI DATA-CENTER POWER BUILDOUT'S CORE BENEFICIARY",
+    "+6% on the announcement · index-inclusion passive bid · the less-rate-sensitive power play the dashboard kept while rotating OUT of VST — thesis validated by the hike · now a large slice of the book: trim 1 of 5 shares into the pop to rebalance"
+   ],
+   [
+    "gold",
+    "🤝 NEW CATALYST — TRUMP-XI SUMMIT IN WASHINGTON THIS WEEK",
+    "futures +0.3% (SPX) / +0.4% (NDX), oil holds losses on the talks · China = Iran's primary oil buyer, so US-China cooperation is the Iran off-ramp · Goldman's Privorotsky: \"the economic incentive to de-escalate is enormous… arguably the moment of maximum leverage for both sides\" · escalation = correction risk · cooperation = \"sudden rush of relief\""
+   ],
+   [
+    "info",
+    "📊 THE TAPE",
+    "4-day losing streak into the CPI → hike-day selloff → Thu relief rally → Fri flat · SPX ~7,630 holds 7,620 support, retook the 50-day (~7,616), 100-day 7,520 draws buyers · breadth at bottom-like levels · below 7,757 ATH · energy +21% Q3, industrials -7.1% · Dow/SPX on track for 4th straight annual gain · THIS WEEK: MU (confirm timing), Costco, AutoZone, KB Home, Sept PMI, Goolsbee · bank NIM watch (KRE/XLF/KBE)"
+   ]
+  ],
+  "overview": {
+   "state": {
+    "title": "ABSORBED THE HIKE · HOLDING SUPPORT · CATALYSTS LINED UP",
+    "sub": "Bottom-like breadth. Trump-Xi, MU, and Iran decide the next leg.",
+    "tone": "warn",
+    "rows": [
+     [
+      "S&P 500",
+      "~7,630 (+0.3% pre)",
+      "Holds 7,620 · vs 7,757 ATH",
+      "warn"
+     ],
+     [
+      "Nasdaq",
+      "~26,100",
+      "Chips sold off on rates/oil",
+      "warn"
+     ],
+     [
+      "Dow",
+      "~51,900",
+      "Hike-day -631 to 51,461.90",
+      "warn"
+     ],
+     [
+      "VIX",
+      "~17",
+      "Calmed post-hike",
+      "bull"
+     ],
+     [
+      "Fed funds",
+      "3.75-4.00% ⚠️",
+      "Hiked Sep 16 · first since 2023",
+      "bear"
+     ],
+     [
+      "10Y Treasury",
+      "~4.88%",
+      "Hit 4.95% Sep 10 (highest since Oct '23)",
+      "bear"
+     ],
+     [
+      "30Y Treasury",
+      "~5.35%",
+      "Multi-decade highs",
+      "bear"
+     ],
+     [
+      "2Y Treasury",
+      "~4.45%",
+      "Post-hike",
+      "bear"
+     ],
+     [
+      "WTI",
+      "~$99 (holds losses)",
+      "Was $102.48 · +78.5% YTD",
+      "warn"
+     ],
+     [
+      "Brent",
+      "~$104",
+      "Hit $107.63 Sep 10",
+      "warn"
+     ],
+     [
+      "Gold",
+      "~$4,560",
+      "Hawkish hike headwind · Iran bid",
+      "warn"
+     ],
+     [
+      "—",
+      "",
+      "",
+      ""
+     ],
+     [
+      "Dec hike odds",
+      "~42% for 2 more",
+      "Dot plot: 1+ more",
+      "bear"
+     ],
+     [
+      "Aug CPI",
+      "3.4% · core +0.3% MoM",
+      "Hot · forced the hike",
+      "bear"
+     ],
+     [
+      "BE",
+      "S&P 500 today ⭐",
+      "+190% YTD",
+      "bull"
+     ],
+     [
+      "Energy Q3",
+      "+21% (leader)",
+      "Industrials -7.1%",
+      "bull"
+     ]
+    ]
+   },
+   "fed": {
+    "title": "TIGHTENING CYCLE BEGINS",
+    "sub": "Unanimous. No dovish faction left to bet on near-term.",
+    "tone": "bear",
+    "rows": [
+     [
+      "Decision",
+      "+25bp to 3.75-4.00%",
+      "First hike since 2023",
+      "bear"
+     ],
+     [
+      "Vote",
+      "UNANIMOUS",
+      "Waller, Williams joined",
+      "bear"
+     ],
+     [
+      "Dot plot",
+      "1+ more in 2026",
+      "Median official",
+      "bear"
+     ],
+     [
+      "Market pricing",
+      "~42% for TWO more",
+      "By year-end",
+      "bear"
+     ],
+     [
+      "Warsh",
+      "'Predominant focus: price stability'",
+      "Abbreviated presser",
+      "bear"
+     ],
+     [
+      "Growth read",
+      "Strong",
+      "Productivity, capex, jobs",
+      "bull"
+     ],
+     [
+      "—",
+      "",
+      "",
+      ""
+     ],
+     [
+      "Dow reaction",
+      "-631 (-1.21%)",
+      "GS led lower · sold the presser",
+      "bear"
+     ],
+     [
+      "Trump",
+      "Blasted hike",
+      "'1% or less' · spared Warsh",
+      "warn"
+     ],
+     [
+      "Next FOMC",
+      "Oct 27-28",
+      "Then Dec 15-16",
+      "warn"
+     ],
+     [
+      "Next CPI",
+      "Oct 13",
+      "Sept data",
+      "warn"
+     ]
+    ],
+    "note": "📌 'Higher-for-longer' became 'tightening' — a regime change
+📌 Validates every rate-sensitive trim (VST out)
+📌 Banks: NIM benefit shows in Q3 earnings, not on hike day
+📌 Growth outrunning hikes is the bull case (Miller)"
+   },
+   "iran": {
+    "items": [
+     [
+      "🟡 TRUMP-XI THIS WEEK",
+      "gold",
+      "Summit in Washington",
+      "US-China = Iran off-ramp"
+     ],
+     [
+      "🟢 OIL HOLDS LOSSES",
+      "bull",
+      "WTI ~$99 on the talks",
+      "Market leaning hopeful"
+     ],
+     [
+      "🔴 WAR 7TH MONTH",
+      "bear",
+      "Since Feb 28",
+      "WTI +52.9% since"
+     ],
+     [
+      "🔴 WTI HIT $102.48",
+      "bear",
+      "Brent $107.63 (Sep 10)",
+      "Highest since May 19"
+     ],
+     [
+      "🟡 MAX LEVERAGE",
+      "warn",
+      "Goldman: incentive 'enormous'",
+      "Both sides"
+     ],
+     [
+      "🔴 ESCALATION RISK",
+      "bear",
+      "Lose China as intermediary",
+      "= energy crisis, correction"
+     ],
+     [
+      "🟢 DEAL UPSIDE",
+      "bull",
+      "'Sudden rush of relief'",
+      "Unwinds the hike chain"
+     ],
+     [
+      "🟢 CVX/ENERGY +21% Q3",
+      "bull",
+      "The hedge that paid",
+      "Trim into de-escalation"
+     ]
+    ],
+    "note": "📌 The summit is the single biggest two-way catalyst this week
+📌 A China-brokered Iran deal would unwind oil→inflation→hikes
+📌 Keep energy as insurance against breakdown; trim into a deal
+📌 Oil below $95 = the relief trigger to watch"
+   },
+   "positions": {
+    "rows": [
+     [
+      "BE ⭐",
+      "S&P 500 TODAY",
+      "+190% YTD · trim 1/5 into pop",
+      "bull"
+     ],
+     [
+      "MU ⚠️",
+      "Reports this week",
+      "Confirm Sep 21/22 · beat-and-fade",
+      "warn"
+     ],
+     [
+      "CVX ⭐",
+      "Energy +21% Q3",
+      "Trim into Trump-Xi de-escalation",
+      "bull"
+     ],
+     [
+      "JPM",
+      "Hike = NIM tailwind",
+      "But GS led Dow lower on hike day",
+      "warn"
+     ],
+     [
+      "SCHD",
+      "Steady",
+      "Bank-heavy top holdings benefit",
+      "bull"
+     ],
+     [
+      "ABBV",
+      "Wobbled (HC -2.5%)",
+      "Add on weakness",
+      "warn"
+     ],
+     [
+      "MSFT",
+      "Steady",
+      "AI growth outrunning hikes",
+      "bull"
+     ],
+     [
+      "HPE",
+      "Steady",
+      "Short-duration value",
+      "bull"
+     ],
+     [
+      "Gold",
+      "~$4,560 (softer)",
+      "Hawkish hike headwind · Iran bid",
+      "warn"
+     ],
+     [
+      "VST (out)",
+      "✓ Validated",
+      "Hike + 10Y 4.95% = the headwind",
+      "bear"
+     ]
+    ],
+    "note": "📌 Two positions have catalysts THIS WEEK: BE (inclusion) and MU (earnings)
+📌 CVX is the winner to trim if the summit de-escalates
+📌 The rotation out of VST is fully validated by the hike"
+   }
+  },
+  "news": [
+   {
+    "tag": "🏛️ THE FED HIKED — FIRST SINCE 2023",
+    "tone": "bear",
+    "time": "Wed Sep 16",
+    "tick": "+25bp to 3.75-4.00% · UNANIMOUS · dot plot 1+ more · ~42% odds of two · Dow -631",
+    "h": "The Fed Raises Rates for the First Time Since 2023 — a Unanimous Quarter-Point Hike to 3.75-4.00%, With the Dot Plot Penciling In at Least One More This Year",
+    "body": "In a UNANIMOUS vote, the FOMC raised the fed funds target 25bp to 3.75-4.00% — the first increase since 2023 and the first tightening of the Warsh era. The dot plot's median expects at least one more 2026 hike; futures price ~42% odds of two by year-end. Warsh: 'Productivity growth is strong and capital investment is robust, job gains have kept pace with the workforce, and the unemployment rate has changed little. But inflation remains elevated. Today's policy action will support a timelier return to the committee's 2% goal.' 'Our predominant focus is on the price stability side of our mandate.' All three indexes were higher before the decision, then sold the presser — the Dow lost 631 points (-1.21%) to 51,461.90 with Goldman Sachs leading it lower; the S&P fell 0.45% to 7,551.81; the Nasdaq slipped 0.01% to 25,978.42. Trump blasted the hike ('rates should be 1%, or less') but avoided attacking Warsh. Higher yields raise net interest on the $40.1T national debt.",
+    "impact": "The regime is now officially tightening. (1) A unanimous vote — doves included — means no dovish faction to bet on near-term; (2) 'one more' plus the market's '42% for two' makes December live; (3) Goldman leading the Dow lower on hike day is the growth reflex, before the NIM benefit shows in earnings. The hike validates every rate-sensitive trim (VST out) and the barbell. The question: does AI-driven growth keep outrunning the hikes? Catalyst's David Miller: 'As long as the growth keeps up to more than offset the rate hikes, you can still see equities continue to rally.'"
+   },
+   {
+    "tag": "⚠️ WHAT FORCED IT: HOT CPI + $100 OIL",
+    "tone": "bear",
+    "time": "Sep 10-11",
+    "tick": "Aug CPI +0.4% MoM, 3.4% YoY, core +0.3% → odds >90% · WTI $102.48, Brent $107.63 · 10Y 4.95%",
+    "h": "The Hot August CPI and Oil Above $100 Left the Fed No Choice — the 10-Year Hit 4.95%, Its Highest Since October 2023, as the Market Fell Four Straight Days Into the Print",
+    "body": "Thursday Sep 10: PPI was 'inconclusive' (21shares' Coltman) but oil surged — WTI closed $102.48 (+6.7%), Brent $107.63 (+5.9%), the highest closes since May 19, as the war stretched into its seventh month. WTI is up 52.9% since the war began and 78.5% YTD. The spike pushed the 10-year above 4.95% (highest since Oct 2023); the Treasury bought back $5.19B of long bonds to manage the curve. The S&P fell 0.58% to 7,591.70, a fourth straight decline; high-beta chips sold off on rate and oil fears. Friday Sep 11: August CPI came in HOT — headline +0.4% MoM, 3.4% YoY, core +0.3% MoM — and hike odds went above 90%.",
+    "impact": "The Iran→oil→inflation→rates transmission ran to completion. (1) Core +0.3% MoM (~3.6% annualized) removed the doves' last argument; (2) WTI +78.5% YTD is the single biggest macro fact of 2026 — it explains the hike, the bond rout, and energy's +21% Q3; (3) A 4.95% 10Y is the highest since 2023 — the risk-free hurdle rose again. The CVX/energy leg of the dividend sleeve is the clear winner of this stretch; the Oct 13 CPI stays pivotal for December."
+   },
+   {
+    "tag": "📊 HOLDING SUPPORT AFTER THE HIKE",
+    "tone": "warn",
+    "time": "Sep 17-21",
+    "tick": "SPX ~7,630 holds 7,620 · retook 50-day · 100-day 7,520 · breadth bottom-like · futures +0.3%",
+    "h": "The Market Absorbed the Hike and Held — a Thursday Relief Rally, a Flat Friday Above 7,620, and Breadth Readings That Historically Mark Bottoms, Not Tops",
+    "body": "Thursday Sep 17 brought a relief rally (S&P retook 7,620); Friday Sep 18 was flat (+0.2%), holding above resistance-turned-support at 7,620. The 50-day (~7,616) has been retaken and the 100-day (7,520) is drawing buyers. Per EquityClock the gyration 'hints of an exhaustive low.' The S&P 'remains technically cautious below its mid-August all-time high, holding support near 7,500, with breadth readings at levels historically associated with market bottoms rather than tops' — a market looking for a catalyst, not one with a clear trend. Monday: futures +0.3% (SPX) / +0.4% (NDX) as oil held losses on US-China talks. The Dow and S&P are on track for a fourth straight annual gain (longest since 2014/2007). Q3 sectors: energy +21%, industrials -7.1%.",
+    "impact": "A market that absorbed a hike, $100 oil, and a hot CPI without breaking support is showing genuine resilience. (1) Bottom-like breadth + the 50-day retaken = a catalyst-ready setup, and the catalysts are lined up; (2) 7,620 is the line — hold it and the ATH stays in play, lose 7,500 and a deeper correction opens; (3) energy vs industrials is the barbell in sector data. Range 7,500-7,757 with a slight upward bias if this week cooperates."
+   },
+   {
+    "tag": "🤝 NEW CATALYST: TRUMP-XI SUMMIT",
+    "tone": "gold",
+    "time": "This week",
+    "tick": "Summit in Washington · oil holds losses · Goldman: 'moment of maximum leverage'",
+    "h": "A Trump-Xi Summit in Washington This Week Adds a Fresh Catalyst — Markets Rise on the Talks, and Goldman Calls It 'the Moment of Maximum Leverage' for an Iran Deal",
+    "body": "Presidents Trump and Xi meet in Washington later this week; futures edged higher and oil held losses as traders awaited details. The Iran dimension is key: Bessent's 'Operation Economic Outcast' secondary sanctions explicitly implicated China (Iran's primary oil buyer), so US-China cooperation is directly linked to an Iran resolution. CNBC: 'any sharp escalation that costs the U.S. a key intermediary in its war with Iran could exacerbate an energy crisis… potentially triggering a market correction. Any cooperation, however, could mean a sudden rush of relief.' Goldman's Rich Privorotsky: 'the economic incentive to de-escalate and find a deal is enormous. This is arguably the moment of maximum leverage for both sides.'",
+    "impact": "A genuine two-way catalyst with an asymmetric bull case. (1) If China becomes an intermediary and oil breaks below $95, it unwinds the entire inflation→hike chain; (2) a breakdown is the correction scenario; (3) oil 'holding its losses' shows the market leaning hopeful. Keep the energy hedge as insurance, but a deal would hit energy hard and lift everything else — CVX is the one to trim into de-escalation."
+   },
+   {
+    "tag": "⭐ BLOOM ENERGY JOINS THE S&P 500",
+    "tone": "bull",
+    "time": "Mon Sep 21",
+    "tick": "BE added today · +6% on the news · ~190% YTD · AI data-center power",
+    "h": "Bloom Energy Enters the S&P 500 Today — the Fuel-Cell Maker Is Up ~190% This Year as a Core Beneficiary of the AI Data-Center Power Buildout",
+    "body": "Bloom Energy joins the S&P 500 effective today. Shares jumped over 6% on the announcement (Sep 8) and are up ~190% in 2026 as hyperscalers race to energize capacity faster than the grid can deliver. Index inclusion forces passive S&P funds to buy, typically supporting the price around the effective date. Bloom's equipment-and-service model is LESS rate-sensitive than utility/merchant-power names (VST/CEG), which finance long-duration generation fleets — exactly why the dashboard kept BE while rotating out of VST as yields rose.",
+    "impact": "The thesis behind holding BE through the rate rout is validated. (1) S&P inclusion = a permanent passive bid and a structural ownership upgrade; (2) +190% YTD makes BE a large slice of the book — a classic trim-into-strength moment on a fraction; (3) it confirms AI power demand is intact even as the Fed tightens. Hold the core, trim 1 of 5 into the inclusion pop."
+   },
+   {
+    "tag": "💾 MICRON REPORTS THIS WEEK",
+    "tone": "warn",
+    "time": "Sep 21/22 (confirm)",
+    "tick": "MU Q4 · timing not consistently confirmed · beat-and-fade 3-for-3 · chips sold off on rates",
+    "h": "Micron's Q4 Print Lands This Week Into a Chip Complex That Sold Off on Rates and Oil — the Memory Thesis Test, With the Beat-and-Fade Pattern Still the Risk",
+    "body": "Micron reports fiscal Q4 this week (calendars list Sep 21 or 22 after the close — verify). Fundamentals remain historic: the prior quarter's $41.46B revenue (quadrupled YoY), a ~$50B Q4 guide, HBM/DRAM sold out with ~$22B in customer prepayments, and NVIDIA's blowout validating memory demand. The tape is hostile: high-beta chips 'traded lower on fears higher rates and oil' would compress multiples, and the Fed just hiked. The pattern is the risk: Samsung (+1,800% profit → -7%), SanDisk (-10% on a beat), Marvell (-10.3%) all fell on strong prints.",
+    "impact": "A binary event with a lowered bar but a proven fade pattern. (1) The rate-driven chip selloff reset expectations lower — a strong guide could pop harder than a month ago; (2) beat-and-fade is three-for-three and a hawkish Fed adds a multiple headwind; (3) the Q1 guide matters more than the Q4 print — watch HBM pricing and capex. Hold the core through the print; trim into a pop; a fade on a beat is the pattern, not a thesis break."
+   }
+  ],
+  "dividends": {
+   "title": "THE HIKE RAISED THE HURDLE AGAIN — AND VALIDATED THE DESIGN",
+   "sub": "10Y hit 4.95%, fed funds 3.75-4.00%. Bond proxies got the headwind; energy and quality got paid.",
+   "sleeve": [
+    [
+     "SCHD",
+     "Core quality",
+     "Steady",
+     "bull",
+     "Financials/HC/industrials mix held up; the hike is a NIM tailwind for its bank-heavy top holdings (JPM). Quarterly distribution paid."
+    ],
+    [
+     "CVX",
+     "Energy aristocrat",
+     "⭐ Big winner",
+     "bull",
+     "WTI $102 / +78.5% YTD; energy +21% led Q3. The pick that paid you to hold the Iran hedge. Trim candidate into any Trump-Xi de-escalation."
+    ],
+    [
+     "ABBV",
+     "Health care king",
+     "Wobbled",
+     "warn",
+     "Health care fell -2.5% Sep 8 (Amgen -10%). ABBV's 2.7% yield + growth thesis intact; add on weakness rather than chase."
+    ],
+    [
+     "VST",
+     "Rotated OUT",
+     "✓ Validated",
+     "bear",
+     "The Fed hiked and the 10Y hit 4.95%. Bond-proxy power/utilities got the headwind the sleeve was built to avoid."
+    ]
+   ],
+   "note": "📌 THE NEW HURDLE: with fed funds at 3.75-4.00% and the 10Y near 4.9%, the risk-free bar rose again. A 3% yield now needs ~10%+ dividend growth to beat a Treasury within five years — exactly the profile SCHD/ABBV/CVX were chosen for.
+
+📌 BANKS AFTER THE HIKE: Goldman led the Dow lower on hike day (the growth-scare reflex), but the NIM benefit shows in Q3 earnings (mid-October). Regional bank NIM commentary (KRE/XLF/KBE) tends to move sharply on the first hike.
+
+📌 THE ENERGY WINNER: CVX rode WTI to $102 and energy's +21% Q3 lead — the sleeve's largest gain, and the one to TRIM if the summit de-escalates Iran. Don't sell it all; it's still the insurance leg.
+
+📌 BOND PROXIES STAY OUT: a hike plus a 5.35% 30-year is the worst environment for utilities/REITs. The re-entry signal remains a Fed pivot — which the dot plot just pushed further out.
+
+📌 CADENCE: next review after MU earnings and the summit. Quarterly, not daily."
+  },
+  "warlog": [
+   [
+    "Sep 8",
+    "7,673.52",
+    "-0.58%",
+    "~18",
+    "$98",
+    "Reopen · Dow -628 · WTI 6th straight up · BE +6% (S&P inclusion news)",
+    false
+   ],
+   [
+    "Sep 9",
+    "~7,635",
+    "-0.5%",
+    "~19",
+    "$100",
+    "Oil tops $100 · Iran missiles at US assets (Jordan intercepts 18) · mortgage rates 14-mo high",
+    false
+   ],
+   [
+    "Sep 10",
+    "7,591.70",
+    "-0.58%",
+    "~20",
+    "$102.48",
+    "⚠️ 4th straight loss · PPI inconclusive · WTI +6.7%, Brent $107.63 · 10Y >4.95% · hike odds 73%",
+    false
+   ],
+   [
+    "Sep 11",
+    "~7,560",
+    "-0.4%",
+    "~21",
+    "$103",
+    "⚠️ AUG CPI HOT: +0.4% MoM, 3.4% YoY, core +0.3% · hike odds >90%",
+    false
+   ],
+   [
+    "Sep 16",
+    "7,551.81",
+    "-0.45%",
+    "~20",
+    "$101",
+    "🏛️ FED HIKES 25bp to 3.75-4.00% (first since 2023, unanimous) · dot plot 1+ more · Dow -631 · GS led lower",
+    false
+   ],
+   [
+    "Sep 17",
+    "~7,620",
+    "+0.9%",
+    "~18",
+    "$100",
+    "Relief rally · retook 7,620",
+    true
+   ],
+   [
+    "Sep 18",
+    "~7,630",
+    "+0.2%",
+    "~17",
+    "$99",
+    "Flat · held 7,620 · retook 50-day (~7,616) · industrial production · Bowman",
+    true
+   ],
+   [
+    "Sep 21 (today)",
+    "+0.3% pre",
+    "AM green",
+    "~17",
+    "$99",
+    "⭐ BE JOINS S&P 500 · Trump-Xi summit this week · oil holds losses · MU reports this week",
+    true
+   ]
+  ],
+  "warlogNote": "WAR CYCLE Feb 28 → Sep 21 (206 days):
+
+📌 THE DECISIVE STRETCH (Sep 8-18): reopen Dow -628 → oil tops $100 → 4th straight loss, WTI $102.48, 10Y >4.95% → AUG CPI HOT → FED HIKES 25bp (unanimous) → relief rally → flat, holds 7,620.
+
+📌 THE FED: Warsh 'predominant focus is price stability' · futures ~42% odds of TWO more · Trump blasted the hike, spared Warsh · next FOMC Oct 27-28 · CPI Oct 13.
+
+📌 IRAN / OIL: war in 7th month · WTI +52.9% since Feb 28, +78.5% YTD · Sep 21 oil holds losses (~$99) on Trump-Xi talks · Goldman: 'moment of maximum leverage' · China = Iran's primary oil buyer = the off-ramp.
+
+📌 THE TAPE: SPX ~7,630 · range 7,500-7,757 · breadth at bottom-like levels · energy +21% Q3, industrials -7.1% · Dow/SPX on track for 4th straight annual gain · US debt $40.1T.
+
+📌 YOUR CATALYSTS THIS WEEK: BE joins S&P 500 (+190% YTD) · MU Q4 earnings (Sep 21/22 AMC, confirm) · Trump-Xi summit.
+
+📅 AHEAD: Costco, AutoZone, KB Home, Sept PMI, Goolsbee · mid-Oct Q3 bank earnings (NIM post-hike) · Oct 13 CPI · Oct 27-28 FOMC · Dec 15-16 FOMC (2nd hike?)",
+  "action": "⭐ THE FED HIKED AND THE MARKET HELD. NOW THE SUMMIT, MICRON, AND BLOOM'S S&P DEBUT DECIDE THE NEXT LEG ⭐
+
+The regime changed from 'higher-for-longer' to actively tightening — a unanimous hike with more penciled in. But the tape absorbed it: support at 7,620 held, the 50-day was retaken, and breadth sits at bottom-like levels. The bull case (Miller): AI-driven growth keeps outrunning the hikes. The bear case: oil above $100 and a December hike. This week's catalysts break the tie.
+
+📌 THIS WEEK'S MOVES:
+
+⭐ BE — S&P 500 INCLUSION TODAY:
+• The thesis paid off: +190% YTD, now a permanent passive bid
+• BE is now a large slice of the book — TRIM 1 of 5 shares into the inclusion pop to lock gains and reduce concentration. Hold the core 4.
+
+⚠️ MU — EARNINGS THIS WEEK (confirm Sep 21 vs 22 AMC):
+• Hold the core share through the print
+• The bar is reset LOWER (rate/oil selloff) — a strong Q1 guide could pop it; the beat-and-fade pattern (3-for-3) could sink it
+• If it pops: trim into it. If it fades on a beat: that's the pattern, not a thesis break. Watch HBM pricing + capex commentary.
+
+🤝 THE SUMMIT — TWO-WAY:
+• Cooperation → oil <$95 → the hike chain unwinds → TRIM CVX (the winner most exposed), add to rate-sensitives/growth on the relief
+• Breakdown → oil re-spikes → energy/gold hedges earn their keep → stay defensive
+• Don't pre-position; let the headlines land
+
+✅ HOLD: JPM + SCHD (NIM benefit shows in Q3 bank earnings, mid-Oct) · MSFT, HPE (growth/quality outrunning the hikes) · Gold (softer on the hawkish hike but the Iran/debasement bid persists)
+
+✅ ADD ON WEAKNESS: ABBV — health care wobbled; the 2.7% yield + growth thesis is intact
+
+❌ STAY OUT: bond proxies (utilities/REITs) — a hike + a 5.35% 30Y is their worst environment; the VST exit is fully validated · long-duration bonds
+
+📌 PORTFOLIO ($4K) STATUS — POST-HIKE:
+• BE 5 shares ~$930 (⭐ +190% YTD · S&P inclusion · trim 1)
+• MU 1 share ~$1,020 (earnings this week)
+• MSFT 2 shares ~$1,020
+• JPM 1 share ~$325 (NIM tailwind coming)
+• HPE 4 shares ~$236
+• 💰 SCHD ~$275 · CVX ~$175 (⭐ energy winner) · ABBV ~$112
+• Gold 2-3%
+• Total: ~$4,100+
+
+📌 THE BIG PICTURE:
+The Fed did what the data forced — and the market's response was resilience, not panic. With earnings growing ~80% across the Nasdaq-100 and energy leading Q3, growth is still outrunning the hikes. But the margin for error narrowed: oil at $100, a 4.9% 10-year, and a December hike in play mean the next leg needs a catalyst. This week delivers three. Trim the winners into their catalysts, hold the core through MU, keep the hedges, and let the summit set the direction.
+
+⚠️ NOT FINANCIAL ADVICE — informational only · a personal project published as an outside business activity · the model portfolio is hypothetical · verify all prices and MU's exact report timing before trading",
+  "calendar": [
+   [
+    "TODAY MON SEP 21 ⭐",
+    "BE joins S&P 500",
+    "Goolsbee · Chicago Fed",
+    "bull"
+   ],
+   [
+    "MON/TUE SEP 21-22 ⭐⭐",
+    "MU Q4 EARNINGS",
+    "Confirm timing · AMC",
+    "gold"
+   ],
+   [
+    "TUE SEP 22",
+    "AutoZone · KB Home",
+    "Consumer + housing reads",
+    "warn"
+   ],
+   [
+    "WED SEP 23",
+    "Sept PMI (prelim)",
+    "+ General Mills",
+    "warn"
+   ],
+   [
+    "THIS WEEK ⭐⭐⭐",
+    "TRUMP-XI SUMMIT",
+    "Washington · Iran off-ramp?",
+    "gold"
+   ],
+   [
+    "THU SEP 24",
+    "Costco earnings",
+    "Consumer bellwether",
+    "warn"
+   ],
+   [
+    "—",
+    "",
+    "",
+    ""
+   ],
+   [
+    "MID-OCT",
+    "Q3 bank earnings",
+    "NIM post-hike (KRE/XLF/KBE)",
+    "bull"
+   ],
+   [
+    "OCT 13",
+    "September CPI",
+    "December-hike decider",
+    "warn"
+   ],
+   [
+    "OCT 27-28",
+    "FOMC",
+    "Next decision",
+    "bear"
+   ],
+   [
+    "DEC 15-16",
+    "FOMC (2nd hike?)",
+    "~42% for two by YE",
+    "bear"
+   ]
+  ],
+  "levels": [
+   [
+    "S&P 500",
+    "~7,630",
+    "+0.3% pre",
+    "warn"
+   ],
+   [
+    "SPX ATH",
+    "7,757",
+    "Mid-August",
+    "warn"
+   ],
+   [
+    "SPX support 1",
+    "7,620 / 50-day 7,616",
+    "Held Fri · the line",
+    "warn"
+   ],
+   [
+    "SPX support 2",
+    "7,520 (100-day)",
+    "Drawing buyers",
+    "warn"
+   ],
+   [
+    "SPX support 3",
+    "7,500",
+    "Lose it = deeper correction",
+    "bear"
+   ],
+   [
+    "—",
+    "",
+    "",
+    ""
+   ],
+   [
+    "Fed funds",
+    "3.75-4.00%",
+    "Hiked",
+    "bear"
+   ],
+   [
+    "10Y",
+    "~4.88%",
+    "Peak 4.95% (Oct '23 high)",
+    "bear"
+   ],
+   [
+    "30Y",
+    "~5.35%",
+    "Bond-proxy killer",
+    "bear"
+   ],
+   [
+    "WTI",
+    "~$99",
+    "<$95 = relief trigger",
+    "warn"
+   ],
+   [
+    "Gold",
+    "~$4,560",
+    "Softer",
+    "warn"
+   ],
+   [
+    "—",
+    "",
+    "",
+    ""
+   ],
+   [
+    "BE ⭐",
+    "S&P 500 today",
+    "Trim 1/5",
+    "bull"
+   ],
+   [
+    "MU ⚠️",
+    "~$1,020",
+    "Earnings this week",
+    "warn"
+   ],
+   [
+    "CVX ⭐",
+    "~$175",
+    "Trim into de-escalation",
+    "bull"
+   ],
+   [
+    "JPM",
+    "~$325",
+    "NIM in Q3 earnings",
+    "warn"
+   ],
+   [
+    "MSFT",
+    "Steady",
+    "Hold",
+    "bull"
+   ],
+   [
+    "SCHD / ABBV",
+    "Steady / add on dip",
+    "Sleeve",
+    "div"
+   ]
+  ],
+  "scenarios": [
+   [
+    40,
+    "SUMMIT COOPERATION — RELIEF RALLY",
+    "bull",
+    "Trump-Xi produce an Iran intermediary path; oil breaks below $95; MU delivers a strong guide",
+    "'Sudden rush of relief' — SPX retakes 7,757; yields ease; December hike odds fall; growth/rate-sensitives rally; energy (CVX) gives back — trim it into the move"
+   ],
+   [
+    40,
+    "NO RESOLUTION — RANGE-BOUND",
+    "warn",
+    "Summit produces talk, not a deal; oil ~$100; MU beats-and-fades; Fed path unchanged",
+    "SPX chops 7,520-7,700; the barbell persists; the market waits for Q3 bank earnings and the Oct 13 CPI"
+   ],
+   [
+    20,
+    "SUMMIT BREAKDOWN — CORRECTION",
+    "bear",
+    "China rejects the secondary sanctions; oil re-spikes >$105; MU fades; December hike near-certain",
+    "SPX loses 7,500 toward 7,300; 'energy crisis' narrative; only energy/gold/defensives work; tightening-into-a-shock stagflation-lite"
+   ]
+  ],
+  "sources": "CNBC, Reuters, Bloomberg, Yahoo Finance, TheStreet, Kiplinger, Charles Schwab, EquityClock, TradingKey, Goldman Sachs, Catalyst Funds, 21shares, CME FedWatch, BLS"
+ },
+ {
+  "date": "2026-09-07",
+  "label": "Mon Sep 7, 2026 (Labor Day)",
+  "sub": "LABOR DAY (CLOSED) · DIVIDEND SLEEVE ADDED · CPI FRIDAY DECIDES",
+  "badges": [
+   [
+    "HIKE ODDS 58%",
+    "bear"
+   ],
+   [
+    "CPI FRI SEP 11 ⭐⭐⭐",
+    "gold"
+   ],
+   [
+    "10Y 4.78% = THE HURDLE",
+    "warn"
+   ],
+   [
+    "NEW: DIVIDEND SLEEVE",
+    "div"
+   ]
+  ],
+  "alerts": [
+   [
+    "gold",
+    "📊 FRIDAY CLOSE / THE WEEK",
+    "Dow -0.51% (53,414.25) · SPX -0.38% (7,718.60) · Nasdaq -0.29% (26,506.99) on hot jobs (+162K vs ~53K, June/July revised UP) · week: SPX +0.1%, Nasdaq +0.4%, Dow -0.3% (2nd straight weekly gain despite Iran/oil/yields) · hike odds 58% · 10Y 4.78%, 2Y 4.37% · Brent ~$96 (+10% wk) · US debt crossed $40T"
+   ],
+   [
+    "bear",
+    "⚔️ IRAN — BAR RAISED",
+    "strikes continued, more tankers hit at Hormuz · Trump won't accept a return to the expired MOU — now requires Hormuz + NUCLEAR deal · Iran fired at Kuwait · tanker/shipping stocks at 52-wk highs · NEXT: PPI Thu → CPI FRIDAY Sep 11 → FOMC Sep 15-16 → MU Sep 22"
+   ]
+  ],
+  "overview": {
+   "state": {
+    "title": "RESILIENT BUT RANGE-BOUND · CPI FRIDAY",
+    "sub": "2nd straight weekly gain through a war and a bond rout. Coiled below the ATH.",
+    "tone": "warn",
+    "rows": [
+     [
+      "S&P 500",
+      "7,718.60 (-0.38%)",
+      "Wk +0.1% · vs 7,757 ATH",
+      "warn"
+     ],
+     [
+      "Nasdaq",
+      "26,506.99 (-0.29%)",
+      "Wk +0.4%",
+      "warn"
+     ],
+     [
+      "Dow",
+      "53,414.25 (-0.51%)",
+      "Wk -0.3%",
+      "bear"
+     ],
+     [
+      "Aug NFP",
+      "+162K (vs ~53K)",
+      "June/July revised UP",
+      "bear"
+     ],
+     [
+      "Sept hike odds",
+      "~58%",
+      "From 50% Thu",
+      "bear"
+     ],
+     [
+      "10Y Treasury",
+      "~4.78%",
+      "The dividend hurdle",
+      "bear"
+     ],
+     [
+      "30Y Treasury",
+      "~5.24%",
+      "Bond-proxy killer",
+      "bear"
+     ],
+     [
+      "Brent / WTI",
+      "~$96 / >$91",
+      "+10% wk · Iran",
+      "bear"
+     ],
+     [
+      "Gold",
+      "~$4,620",
+      "Debasement bid",
+      "gold"
+     ]
+    ]
+   },
+   "fed": {
+    "title": "WHY THE REGIME DRIVES THE DIVIDEND PICKS",
+    "sub": "Risk-free pays 4.78%. A dividend must win on growth, sector fit, or total return.",
+    "tone": "div",
+    "rows": [
+     [
+      "✅ Banks (JPM)",
+      "NIM beneficiary",
+      "Own · pays ~2%",
+      "bull"
+     ],
+     [
+      "✅ Energy (CVX/XOM)",
+      "Oil >$91 + war",
+      "Aristocrats ~3.5-4%",
+      "bull"
+     ],
+     [
+      "✅ Health care (ABBV)",
+      "Defensive leader",
+      "King · +330% since '13",
+      "bull"
+     ],
+     [
+      "✅ Quality (SCHD/HDV)",
+      "Regime-aligned",
+      "Core + regime bet",
+      "bull"
+     ],
+     [
+      "❌ Utilities (NEE/VST)",
+      "Bond proxy",
+      "-3% wk when 30Y spiked",
+      "bear"
+     ],
+     [
+      "❌ REITs (O)",
+      "Most rate-sensitive",
+      "Wrong regime",
+      "bear"
+     ]
+    ],
+    "note": "📌 The dividend sleeve = the barbell, expressed as income
+📌 Bond proxies re-enter only after the Fed pivots"
+   },
+   "iran": {
+    "items": [
+     [
+      "🔴 STRIKES CONTINUE",
+      "bear",
+      "US-Iran exchange",
+      "More tankers hit at Hormuz"
+     ],
+     [
+      "🔴 BAR RAISED",
+      "bear",
+      "Hormuz + NUCLEAR required",
+      "No return to expired MOU"
+     ],
+     [
+      "🔴 BRENT ~$96",
+      "bear",
+      "+10% on the week",
+      "CPI upside risk"
+     ],
+     [
+      "🟢 TANKERS 52-WK HI",
+      "bull",
+      "DHT/FRO/GNK/NAT",
+      "Freight surge trade"
+     ]
+    ],
+    "note": "📌 The higher deal bar means the oil premium persists"
+   },
+   "positions": {
+    "rows": [
+     [
+      "VST",
+      "→ ROTATED OUT",
+      "Bond-proxy risk removed",
+      "bear"
+     ],
+     [
+      "💰 SCHD (new)",
+      "~$275",
+      "Core quality ~3%",
+      "div"
+     ],
+     [
+      "💰 CVX (new)",
+      "~$165",
+      "Energy aristocrat ~3.5-4%",
+      "div"
+     ],
+     [
+      "💰 ABBV (new)",
+      "~$115",
+      "Health care king ~2.7%",
+      "div"
+     ],
+     [
+      "MU",
+      "~$1,060",
+      "Trim into Sep 22",
+      "warn"
+     ],
+     [
+      "JPM",
+      "~$333",
+      "Higher-for-longer",
+      "bull"
+     ]
+    ],
+    "note": "📌 Rotation: VST (~$550) → SCHD + CVX + ABBV. Income-paying share ~10% → ~35%."
+   }
+  },
+  "news": [
+   {
+    "tag": "📊 THE WEEK — RESILIENCE AMID TURBULENCE",
+    "tone": "warn",
+    "time": "Week Sep 1-4",
+    "tick": "SPX +0.1% · Nasdaq +0.4% · Dow -0.3% · hot jobs · hike odds 58%",
+    "h": "Stocks Barely Moved Through a Week of Iran Strikes, Oil Near $100, Surging Yields, and a Hot Jobs Report — a Second Straight Weekly Gain",
+    "body": "The first trading week of September brought renewed fighting with Iran, oil approaching $100, multi-year-high yields, another Fed twist, and a hot jobs report — yet the market barely moved. Friday's +162K jobs print (with June and July revised UP) pushed the Dow down 272 points and lifted September hike odds to ~58%. Broadcom beat with nearly 100% annual earnings growth; the Nasdaq-100 finished the quarter with ~80% earnings growth. Three forces drive yields: oil, government borrowing ($40T debt), and the AI buildout financed through bonds.",
+    "impact": "A market absorbing extraordinary stress without breaking is a bullish tell — but it's coiled, not resolved. The upward jobs revisions strengthen the hawkish case; Friday's CPI decides."
+   },
+   {
+    "tag": "💰 NEW: THE DIVIDEND SLEEVE",
+    "tone": "div",
+    "time": "Sep 7",
+    "tick": "SCHD core · HDV regime bet · CVX · ABBV · avoid bond proxies",
+    "h": "A Regime-Aware Dividend Sleeve — Built to Beat a 4.78% Treasury on Growth and Sector Fit, Not Raw Yield",
+    "body": "With the 10Y at 4.78% and the 30Y at 5.24%, a dividend earns its place only by clearing one of three bars: growth (outpacing 3.4% inflation), sector fit (energy/financials/health care benefit from the regime), or total return. SCHD (Dow Jones U.S. Dividend 100 — quality screens, ~3% yield, 30.7% trailing total return) is the core; HDV (25% energy + 25% health care) the regime bet; CVX (39-yr aristocrat) and ABBV (dividend king, +330% since 2013) the stocks. Bond proxies (utilities, REITs) stay out until the Fed pivots.",
+    "impact": "Every pick is a sector we already want for the regime — you get paid for the bets you already hold, and the sleeve removes the bond-proxy exposure (VST) the rate regime keeps punishing."
+   }
+  ],
+  "dividends": {
+   "title": "THE FRAMEWORK: DIVIDENDS VS A 4.78% TREASURY",
+   "sub": "Growth · sector fit · total return. Yield alone loses.",
+   "sleeve": [
+    [
+     "SCHD",
+     "Core quality",
+     "Buy now",
+     "bull",
+     "Quality screens; financials/HC/industrials; ~3% growing double-digits."
+    ],
+    [
+     "HDV",
+     "Regime bet",
+     "Alternative",
+     "bull",
+     "25% energy + 25% health care — the two winning sectors in one ticket."
+    ],
+    [
+     "CVX",
+     "Energy aristocrat",
+     "Add post-CPI",
+     "bull",
+     "39-yr streak, peer-leading growth; the Iran hedge that pays."
+    ],
+    [
+     "ABBV",
+     "Health care king",
+     "Add post-CPI",
+     "bull",
+     "+330% since 2013; the defensive sector's best dividend-growth franchise."
+    ]
+   ],
+   "note": "📌 Tax: SCHD/CVX/ABBV dividends are mostly qualified; covered-call ETFs (JEPI/JEPQ) are ordinary income — tax-advantaged accounts only.
+📌 Turn on DRIP; the compounding of reinvested, growing payouts is the engine.
+📌 The 30Y is the pricing anchor — a spike above 5.3% is a buying opportunity for the growth names, not a reason to abandon them."
+  },
+  "warlog": [
+   [
+    "Sep 1",
+    "7,631.47",
+    "-0.71%",
+    "~19",
+    "$92",
+    "US strikes Iran · 2 tankers hit · Brent >$95 · 10Y 4.79%",
+    false
+   ],
+   [
+    "Sep 2",
+    "~7,665",
+    "+0.5%",
+    "~17",
+    "$91",
+    "Rebound · Williams dovish · ADP soft +38K",
+    true
+   ],
+   [
+    "Sep 3",
+    "7,747.71",
+    "+1.06%",
+    "~15",
+    "$88",
+    "🚀 Waller leans HOLD · best day in a month · ATH zone",
+    true
+   ],
+   [
+    "Sep 4",
+    "7,718.60",
+    "-0.38%",
+    "~16",
+    "$91",
+    "⚠️ HOT JOBS +162K · hike odds 58% · Dow -272 · Brent ~$96",
+    false
+   ]
+  ],
+  "warlogNote": "WAR CYCLE Feb 28 → Sep 7 (192 days): Iran strikes, Brent ~$96, 10Y 4.78%, Waller dovish → hot jobs (+162K, revisions UP) → hike odds 58%. Yet SPX +0.1%, Nasdaq +0.4% — 2nd straight weekly gain. Trump raised the bar: Hormuz + NUCLEAR deal required. NEW dividend sleeve (SCHD/HDV/CVX/ABBV). AHEAD: PPI Thu · CPI FRI SEP 11 · FOMC Sep 15-16 · MU Sep 22.",
+  "action": "⭐ THE HOLIDAY IS THE MOMENT TO REPOSITION: SWAP THE BOND-PROXY RISK (VST) FOR REGIME-FIT DIVIDEND PAYERS, THEN LET FRIDAY'S CPI DECIDE THE REST ⭐
+
+✅ ROTATE: SELL VST (~$550) → BUY SCHD (~$275) now · add CVX (1 share) + ABBV (~$115) on post-CPI weakness · single-ticket alternative: HDV
+✅ HOLD: JPM · MSFT · HPE · BE · gold sleeve
+⚠️ TRIM INTO STRENGTH: MU (Sep 22 beat-and-fade risk)
+❌ AVOID: bond-proxy dividends (NEE, O, VZ) · chasing the 7,757 ATH into an unresolved CPI
+
+📌 CPI DECISION TREE (Fri Sep 11): HOT → hike ~certain, pullback to 7,500-7,600, finish the CVX/ABBV adds · COOL → doves hold, relief toward the ATH · IN-LINE → hawkish chop, the income sleeve earns its keep
+
+⚠️ NOT FINANCIAL ADVICE — informational only · a personal project published as an outside business activity · the model portfolio is hypothetical",
+  "calendar": [
+   [
+    "TUE SEP 8",
+    "Reopen",
+    "Digest weekend Iran",
+    "warn"
+   ],
+   [
+    "THU SEP 10",
+    "PPI + jobless claims",
+    "CPI preview",
+    "warn"
+   ],
+   [
+    "FRI SEP 11 ⭐⭐⭐",
+    "AUGUST CPI",
+    "THE decider",
+    "gold"
+   ],
+   [
+    "SEP 15-16 ⭐⭐⭐",
+    "FOMC + DOT PLOT",
+    "58% hike priced",
+    "bear"
+   ],
+   [
+    "SEP 22 ⭐⭐",
+    "MU Q4 earnings",
+    "Beat-and-fade risk",
+    "gold"
+   ]
+  ],
+  "levels": [
+   [
+    "S&P 500",
+    "7,718.60",
+    "Range 7,631–7,757",
+    "warn"
+   ],
+   [
+    "10Y ⭐",
+    "4.78%",
+    "Dividend hurdle",
+    "bear"
+   ],
+   [
+    "30Y ⭐",
+    "5.24%",
+    "Bond-proxy anchor",
+    "bear"
+   ],
+   [
+    "Brent / WTI",
+    "$96 / $91",
+    "Iran premium",
+    "bear"
+   ],
+   [
+    "Gold",
+    "~$4,620",
+    "Hedge",
+    "gold"
+   ],
+   [
+    "SCHD 💰",
+    "Core buy",
+    "~3% · quality",
+    "div"
+   ],
+   [
+    "CVX 💰",
+    "Add post-CPI",
+    "~3.5-4%",
+    "div"
+   ],
+   [
+    "ABBV 💰",
+    "Add post-CPI",
+    "~2.7%",
+    "div"
+   ]
+  ],
+  "scenarios": [
+   [
+    45,
+    "HOT CPI — HIKE SEALED",
+    "bear",
+    "Oil (+10% wk) + tariffs show up; hawks get the votes",
+    "SPX 7,500-7,600; 30Y >5.3%; rate-sensitives fall — validating the VST exit; energy/banks hold"
+   ],
+   [
+    35,
+    "COOL CPI — DOVES HOLD, BREAKOUT",
+    "bull",
+    "Core CPI contained; Waller/Williams vote hold",
+    "SPX breaks 7,757 toward 7,850; yields ease; the sleeve rallies with the tape"
+   ],
+   [
+    20,
+    "IN-LINE — HAWKISH CHOP",
+    "warn",
+    "CPI in line; Fed hikes once and pauses, or holds hawkishly",
+    "SPX chops 7,600-7,757; the income sleeve earns its keep"
+   ]
+  ],
+  "sources": "CNBC, Reuters, TheStreet, Edward Jones, Nasdaq, Dividend Vision, ETF Beacon, Simply Safe Dividends, Motley Fool"
+ },
+ {
+  "date": "2026-09-02",
+  "label": "Wed Sep 2, 2026",
+  "sub": "SEPT OPENS HOSTILE · IRAN WAR RE-ESCALATES · GLOBAL BOND ROUT · HIKE ~66%",
+  "badges": [
+   [
+    "US STRIKES IRAN · BRENT >$95 ⚔️",
+    "bear"
+   ],
+   [
+    "10Y 4.79% (HIGH SINCE JAN '25)",
+    "bear"
+   ],
+   [
+    "SEPT HIKE ~66%",
+    "bear"
+   ],
+   [
+    "JOBS FRIDAY = SWING",
+    "gold"
+   ]
+  ],
+  "alerts": [
+   [
+    "bear",
+    "⚔️ THE U.S.-IRAN WAR TURNS KINETIC AGAIN — CENTCOM STRIKES IRANIAN TARGETS, TWO TANKERS HIT AT HORMUZ, BRENT TOPS $95",
+    "New US strikes signal re-escalation · 2 oil tankers struck exiting the Strait · Brent >$95 (WTI ~$92), up sharply from ~$85 · the worst-timed catalyst — an oil spike just as the Fed debates a hike"
+   ],
+   [
+    "bear",
+    "⚠️ WORLDWIDE BOND ROUT INTENSIFIES — 10-YEAR HITS 4.79% (HIGHEST SINCE JAN 2025), 30-YEAR ~5.27%",
+    "'A ferocity that should alarm every investor' · Eurozone inflation 3.3% · NY Fed's Williams: yields may reflect 'a strong economy rather than inflation expectations' — helped stocks stabilize"
+   ]
+  ],
+  "overview": {
+   "state": {
+    "title": "REBOUND ATTEMPT ON A HOSTILE BACKDROP",
+    "sub": "Buyers step in despite Iran + yields + rising hike odds. Fragile.",
+    "tone": "warn",
+    "rows": [
+     [
+      "S&P 500",
+      "~7,671 (rebound)",
+      "From Tue 7,631.47 (-0.71%)",
+      "bull"
+     ],
+     [
+      "Russell 2000 ⚠️",
+      "-1.2%",
+      "Small caps most rate-sensitive",
+      "bear"
+     ],
+     [
+      "Brent",
+      ">$95 ⚔️",
+      "US strikes · tankers hit",
+      "bear"
+     ],
+     [
+      "10Y Treasury ⚠️",
+      "4.79%",
+      "Highest since Jan 2025",
+      "bear"
+     ],
+     [
+      "Sept hike odds ⚠️",
+      "~66%",
+      "Base case now",
+      "bear"
+     ],
+     [
+      "ADP (Aug)",
+      "+38K (soft)",
+      "vs +47K est",
+      "warn"
+     ],
+     [
+      "Gold",
+      "~$4,650 (war bid)",
+      "Haven role reactivates",
+      "gold"
+     ]
+    ]
+   },
+   "fed": {
+    "title": "HIKE NOW THE BASE CASE (~66%)",
+    "sub": "Collins hawkish shift; Williams 'no clear signs'. Fed split but tilted to hike.",
+    "tone": "bear",
+    "rows": [
+     [
+      "Sept hike odds",
+      "~66%",
+      "From 40% a week ago",
+      "bear"
+     ],
+     [
+      "Collins (centrist)",
+      "Hawkish shift",
+      "Reinforced hike case",
+      "bear"
+     ],
+     [
+      "Williams (dove)",
+      "'No clear signs'",
+      "Hike not a certainty",
+      "bull"
+     ],
+     [
+      "Barclays",
+      "Sept + Dec",
+      "Two hikes",
+      "bear"
+     ],
+     [
+      "The asymmetry",
+      "HOLD = the surprise",
+      "Hike largely priced",
+      "warn"
+     ]
+    ],
+    "note": "📌 Friday jobs is the doves' best hope to avert it"
+   },
+   "iran": {
+    "items": [
+     [
+      "🔴 US STRIKES",
+      "bear",
+      "CENTCOM new attacks",
+      "Re-escalation of hot war"
+     ],
+     [
+      "🔴 TANKERS HIT",
+      "bear",
+      "2 exiting Hormuz",
+      "Supply-route attack"
+     ],
+     [
+      "🔴 BRENT >$95",
+      "bear",
+      "From ~$85",
+      "Inflation impulse"
+     ],
+     [
+      "🟢 ENERGY BID",
+      "bull",
+      "The one sector to own",
+      "War beneficiary"
+     ]
+    ],
+    "note": "📌 Oil >$95 could turn a September hike into a certainty"
+   },
+   "positions": {
+    "rows": [
+     [
+      "Energy ⭐",
+      "War bid",
+      "Brent >$95",
+      "bull"
+     ],
+     [
+      "Gold ⭐",
+      "~$4,650",
+      "Iran + debasement",
+      "gold"
+     ],
+     [
+      "JPM",
+      "Higher-for-longer",
+      "Curve beneficiary",
+      "bull"
+     ],
+     [
+      "VST ⚠️",
+      "10Y 4.79% headwind",
+      "REDUCE",
+      "bear"
+     ],
+     [
+      "MU",
+      "~$1,030",
+      "Trim into Sep 22",
+      "warn"
+     ]
+    ],
+    "note": "📌 The barbell is working: energy/gold/banks over rate-sensitive small caps"
+   }
+  },
+  "news": [
+   {
+    "tag": "⚔️ IRAN WAR RE-ESCALATES",
+    "tone": "bear",
+    "time": "Sep 1",
+    "tick": "CENTCOM strikes · 2 tankers hit · Brent >$95",
+    "h": "The U.S.-Iran War Turns Kinetic Again — CENTCOM Strikes Iranian Targets, Two Tankers Hit at the Strait of Hormuz, Brent Tops $95",
+    "body": "U.S. Central Command launched new attacks against Iranian targets after two oil tankers were struck exiting the Strait of Hormuz, sending Brent above $95. Global bond yields jumped as the hostilities reinforced inflation expectations and September hike bets.",
+    "impact": "The worst-timed catalyst — an oil spike as the Fed weighs a hike. Energy gets a war bid, gold's haven role reactivates, and the risk to the broad market is real if oil holds above $95."
+   },
+   {
+    "tag": "⚠️ GLOBAL BOND ROUT",
+    "tone": "bear",
+    "time": "Sep 1-2",
+    "tick": "10Y 4.79% · 30Y ~5.27% · Eurozone inflation 3.3%",
+    "h": "A Worldwide Government Bond Sell-Off Intensifies — the 10-Year Hits 4.79%, Its Highest Since January 2025",
+    "body": "The 10-year rose to 4.79%, its highest since January 2025; the 30-year ~5.27%. Eurozone inflation hit 3.3%. Drivers compound: Iran-oil, Warsh's hawkish turn, US debt/supply, and the war re-escalation.",
+    "impact": "Rising long yields compress multiples — especially rate-sensitive sectors. The bond rout reinforces the barbell: banks, short-duration quality, gold; avoid long duration."
+   }
+  ],
+  "dividends": null,
+  "warlog": [
+   [
+    "Aug 28",
+    "7,711",
+    "-0.3%",
+    "~16",
+    "$85",
+    "Warsh hawkish · Sept hike 35%→57.5%",
+    false
+   ],
+   [
+    "Sep 1",
+    "7,631.47",
+    "-0.71%",
+    "~19",
+    "$92",
+    "⚠️ US STRIKES IRAN · Brent >$95 · 10Y 4.79%",
+    false
+   ],
+   [
+    "Sep 2",
+    "~7,671",
+    "rebound",
+    "~18",
+    "$91",
+    "Bounce · Williams dovish · ADP soft +38K",
+    true
+   ]
+  ],
+  "warlogNote": "WAR CYCLE Feb 28 → Sep 2 (187 days): the economic war became a shooting war again; a worldwide bond rout; a hike now the base case (~66%). Friday's jobs is the swing factor.",
+  "action": "⚠️ SEPTEMBER OPENED HOSTILE: IRAN'S WAR TURNED KINETIC AGAIN (BRENT >$95), THE GLOBAL BOND ROUT INTENSIFIED (10Y 4.79%), AND A HIKE IS NOW THE BASE CASE (~66%)
+
+✅ OWN: energy ⭐ · gold ⭐ · banks (JPM) · HPE · health care
+⚠️ TRIM: VST-type power/utilities · MU (into Sep 22) · long-duration bonds
+❌ AVOID: chasing the index near highs into a hawkish Fed + hot war
+
+📌 FRIDAY JOBS: WEAK = possible hold/relief (the doves' evidence) · FIRM = hike confirmed into a hot war
+
+⚠️ NOT FINANCIAL ADVICE — informational only · a personal project published as an outside business activity · the model portfolio is hypothetical",
+  "calendar": [
+   [
+    "FRI SEP 4 ⭐⭐⭐",
+    "AUGUST NFP",
+    "The swing factor",
+    "gold"
+   ],
+   [
+    "MON SEP 7",
+    "Labor Day (closed)",
+    "",
+    "warn"
+   ],
+   [
+    "~SEP 10-11 ⭐⭐",
+    "August CPI",
+    "Pivotal",
+    "gold"
+   ],
+   [
+    "SEP 15-16 ⭐⭐⭐",
+    "FOMC + DOT PLOT",
+    "~66% hike",
+    "bear"
+   ],
+   [
+    "SEP 22 ⭐⭐",
+    "MU Q4 earnings",
+    "Beat-and-fade risk",
+    "gold"
+   ]
+  ],
+  "levels": [
+   [
+    "S&P 500",
+    "~7,671",
+    "Off 7,757 ATH",
+    "warn"
+   ],
+   [
+    "10Y ⚠️",
+    "4.79%",
+    "Highest since Jan 2025",
+    "bear"
+   ],
+   [
+    "Brent",
+    ">$95 ⚔️",
+    "War re-escalation",
+    "bear"
+   ],
+   [
+    "Gold ⭐",
+    "~$4,650",
+    "War haven",
+    "gold"
+   ]
+  ],
+  "scenarios": [
+   [
+    45,
+    "FIRM JOBS + HOT CPI — HIKE LANDS",
+    "bear",
+    "August NFP firms; CPI hot on oil; Fed hikes with a hawkish dot plot",
+    "SPX 7,450-7,600; rate-sensitives lead the decline; energy/gold/banks outperform"
+   ],
+   [
+    35,
+    "WEAK JOBS — HOLD SURPRISE",
+    "bull",
+    "NFP weak; Fed holds; oil de-escalates",
+    "A HOLD is the upside surprise — SPX rallies toward the ATH; rate-sensitives + memory rebound"
+   ],
+   [
+    20,
+    "STAGFLATION-LITE",
+    "warn",
+    "Weak jobs AND hot CPI; Fed hikes into weakness",
+    "SPX 7,300-7,450; only gold/energy/defensives work"
+   ]
+  ],
+  "sources": "CNBC, Reuters, TheStreet, Yahoo Finance, Charles Schwab, 24/7 Wall St, Nationwide, Barclays, CME FedWatch"
+ }
+];
+
+// ─────────────────────────────────────────────────────────────
+// Renderer
+// ─────────────────────────────────────────────────────────────
+const TONE = { bear:"var(--bear)", bull:"var(--bull)", warn:"var(--warn)", gold:"var(--gold)", div:"var(--div)", dim:"var(--dim)", text:"var(--text)" };
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const badge = (t, tone) => `<span class="badge" style="color:${TONE[tone]};border-color:${TONE[tone]}55;background:${TONE[tone]}22">${esc(t)}</span>`;
+const rows = arr => arr.map(([l,v,s,t]) => l === "—" ? `<div class="divider"></div>` :
+  `<div class="row"><span class="l">${esc(l)}</span><div><div class="v" style="color:${TONE[t]||"var(--text)"}">${esc(v)}</div>${s?`<div class="s">${esc(s)}</div>`:""}</div></div>`).join("");
+const callout = (title, sub, tone) => `<div class="callout" style="background:${TONE[tone]}11;border-color:${TONE[tone]}44"><b style="color:${TONE[tone]}">${esc(title)}</b><span>${esc(sub)}</span></div>`;
+const card = (icon, title, inner, tone) => `<section class="card" style="${tone?`border-color:${TONE[tone]}66`:""}"><h3><span>${icon}</span>${esc(title)}</h3>${inner}</section>`;
+const note = (t, cls="") => t ? `<div class="note ${cls}">${esc(t)}</div>` : "";
+
+function renderOverview(e){
+  const o = e.overview;
+  const items = o.iran.items.map(([s,t,i,n]) => `<div style="display:flex;gap:9px;border-bottom:1px solid var(--border);padding-bottom:6px"><div style="background:${TONE[t]}20;color:${TONE[t]};border:1px solid ${TONE[t]}40;border-radius:4px;padding:2px 7px;font-size:9px;font-weight:700;flex-shrink:0">${esc(s)}</div><div><div style="font-size:11px;font-weight:600">${esc(i)}</div><div style="font-size:10px;color:var(--dim)">${esc(n)}</div></div></div>`).join("");
+  const log = `<div class="tablewrap"><table><thead><tr><th>Date</th><th>SPX</th><th>Chg</th><th>Event</th></tr></thead><tbody>${e.warlog.map((r,i)=>`<tr class="${i===e.warlog.length-1?"hl":""}"><td><b>${esc(r[0])}</b></td><td>${esc(r[1])}</td><td style="color:${r[6]?"var(--bull)":"var(--bear)"};font-weight:700">${esc(r[2])}</td><td style="color:var(--dim);font-size:10px">${esc(r[5])}</td></tr>`).join("")}</tbody></table></div>`;
+  return `<div class="grid">
+    ${card("📊","Market state", callout(o.state.title,o.state.sub,o.state.tone)+rows(o.state.rows), o.state.tone)}
+    ${card("🏛️","The Fed", callout(o.fed.title,o.fed.sub,o.fed.tone)+rows(o.fed.rows)+note(o.fed.note), o.fed.tone)}
+    ${card("⚔️","Iran / oil / catalysts", items+note(o.iran.note,"c-warn"), "warn")}
+    ${card("🎯","Positions — catalyst map", rows(o.positions.rows)+note(o.positions.note), "bull")}
+    ${card("📅","Recent sessions", log, "warn")}
+  </div>`;
+}
+function renderNews(e){
+  return `<div class="c-dim" style="font-size:11px;margin-bottom:10px">${e.news.length} stories — ${esc(e.label)}</div>` + e.news.map(n => `<article class="news">
+    <div class="meta">${badge(n.tag,n.tone)}<span class="c-dim" style="font-size:10px">${esc(n.time)}</span><span class="tick" style="color:${TONE[n.tone]}">${esc(n.tick)}</span></div>
+    <h4>${esc(n.h)}</h4><p>${esc(n.body)}</p>
+    <div class="impact" style="background:${TONE[n.tone]}15;border-color:${TONE[n.tone]}30"><em>Impact: </em>${esc(n.impact)}</div></article>`).join("");
+}
+function renderDividends(e){
+  const d = e.dividends;
+  if(!d) return `<section class="card"><h3><span>💰</span>Dividends</h3>${note("The dividend sleeve was added in the Sep 7 edition. Switch editions to view it.")}</section>`;
+  const sl = d.sleeve.map(([t,role,st,tone,n]) => `<div style="border-bottom:1px solid var(--border);padding-bottom:8px"><div style="display:flex;justify-content:space-between;gap:8px"><div><b style="font-size:12px">${esc(t)}</b> <span class="c-dim" style="font-size:10px">${esc(role)}</span></div><span style="color:${TONE[tone]};font-weight:700;font-size:11px">${esc(st)}</span></div><div class="c-dim" style="font-size:11px;margin-top:3px;line-height:1.6">${esc(n)}</div></div>`).join("");
+  return card("💰","Dividend sleeve", callout(d.title,d.sub,"div")+sl+note(d.note,"text"), "div");
+}
+function renderWarlog(e){
+  const t = `<div class="tablewrap"><table><thead><tr><th>Date</th><th>SPX</th><th>Change</th><th>VIX</th><th>WTI</th><th>Key event</th></tr></thead><tbody>${e.warlog.map((r,i)=>`<tr class="${i===e.warlog.length-1?"hl":""}"><td><b>${esc(r[0])}</b></td><td>${esc(r[1])}</td><td style="color:${r[6]?"var(--bull)":"var(--bear)"};font-weight:700">${esc(r[2])}</td><td class="c-warn">${esc(r[3])}</td><td>${esc(r[4])}</td><td class="c-dim" style="font-size:10px">${esc(r[5])}</td></tr>`).join("")}</tbody></table></div>`;
+  return t + `<div style="height:14px"></div>` + card("📊","War log summary", note(e.warlogNote), "gold");
+}
+function renderAction(e){
+  const sc = e.scenarios.map(([p,l,t,tr,path]) => `<div class="scen" style="background:${TONE[t]}0d;border-color:${TONE[t]}33">${badge(p+"% · "+l,t)}<div class="bar"><i style="width:${p}%;background:${TONE[t]}"></i></div><div class="p"><b>Triggers:</b> ${esc(tr)}<br><br><b>Path:</b> ${esc(path)}</div></div>`).join("");
+  return `<div class="grid wide">
+    ${card("🎯","Game plan", note(e.action), "gold")}
+    ${card("📅","Calendar", rows(e.calendar), "warn")}
+    ${card("🎯","Key levels", rows(e.levels))}
+    ${card("🎲","Three scenarios", sc, "warn")}
+  </div>`;
+}
+
+const TABS = [["overview","📊 Indices",renderOverview],["news","📰 News feed",renderNews],["dividends","💰 Dividends",renderDividends],["warlog","📅 War log",renderWarlog],["action","🎯 Action plan",renderAction]];
+let current = 0, tab = "overview";
+
+function render(){
+  const e = EDITIONS[current];
+  document.getElementById("sub").textContent = e.label + " | " + e.sub;
+  document.getElementById("badges").innerHTML = e.badges.map(([t,tone]) => badge(t,tone)).join("");
+  document.getElementById("alerts").innerHTML = e.alerts.map(([tone,h,b]) => `<div class="alert ${tone}"><strong>${esc(h)}</strong>${esc(b)}</div>`).join("");
+  document.getElementById("tabs").innerHTML = TABS.map(([id,l]) => `<button class="btn ${id==="dividends"?"div":""}" type="button" data-tab="${id}" aria-pressed="${tab===id}">${l}</button>`).join("");
+  document.getElementById("main").innerHTML = TABS.find(t => t[0]===tab)[2](e);
+  document.getElementById("foot").innerHTML = `⚠️ DISCLAIMER: Informational and educational purposes only. Not financial advice. Sources for this edition: ${esc(e.sources)}. Market levels are approximate as of the edition date; portfolio figures are model illustrations for a hypothetical $4K book. Verify independently before trading. Consult a qualified financial advisor. Last published edition: ${esc(EDITIONS[0].label)}.`;
+  window.scrollTo({ top: 0 });
+}
+document.getElementById("tabs").addEventListener("click", ev => { const b = ev.target.closest("button[data-tab]"); if(!b) return; tab = b.dataset.tab; render(); });
+const sel = document.getElementById("edition");
+sel.innerHTML = EDITIONS.map((e,i) => `<option value="${i}">${esc(e.label)}</option>`).join("");
+sel.addEventListener("change", () => { current = +sel.value; render(); });
+const tb = document.getElementById("themeBtn");
+tb.addEventListener("click", () => {
+  const r = document.documentElement; const cur = r.getAttribute("data-theme");
+  const next = cur === "light" ? "dark" : cur === "dark" ? "light" : (matchMedia("(prefers-color-scheme: dark)").matches ? "light" : "dark");
+  r.setAttribute("data-theme", next);
+  try { localStorage.setItem("mp-theme", next); } catch(_) {}
+});
+try { const t = localStorage.getItem("mp-theme"); if(t) document.documentElement.setAttribute("data-theme", t); } catch(_) {}
+render();
+</script>
+</body>
+</html>
